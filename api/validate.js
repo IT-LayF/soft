@@ -2,6 +2,9 @@ import {json,method,sql,sha256,modDownloadToken} from '../lib/core.js';
 
 export default async function handler(req,res){
   if(!method(req,res))return;
+  const requiredVersion='1.6.3';
+  const clientVersion=String(req.body?.clientVersion||'').trim();
+  if(clientVersion!==requiredVersion)return json(res,426,{valid:false,updateRequired:true,minimumVersion:requiredVersion,message:'Обновите лаунчер до версии '+requiredVersion});
   const key=String(req.body?.key||'').trim().toUpperCase(),hwid=String(req.body?.hwid||'').trim();
   if(!key||!hwid)return json(res,400,{valid:false,message:'Укажите ключ и HWID'});
   const rows=await sql`select * from licenses where key_hash=${sha256(key)} limit 1`,lic=rows[0];
