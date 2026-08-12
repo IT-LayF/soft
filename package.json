@@ -1,0 +1,17 @@
+﻿{
+    "name":  "infinyty-platform",
+    "private":  true,
+    "type":  "module",
+    "scripts":  {
+                    "dev":  "vercel dev",
+                    "check":  "node --check api/auth.js \u0026\u0026 node --check api/admin.js \u0026\u0026 node --check api/validate.js \u0026\u0026 node --check api/free-key.js \u0026\u0026 node --check api/orders.js \u0026\u0026 node --check api/mod-update.js \u0026\u0026 node --check api/launcher-update.js \u0026\u0026 node --check api/releases.js \u0026\u0026 node --check api/telegram.js"
+                },
+    "dependencies":  {
+                         "@neondatabase/serverless":  "^1.0.1",
+                         "bcryptjs":  "^3.0.2",
+                         "jsonwebtoken":  "^9.0.2"
+                     },
+    "devDependencies":  {
+                            "vercel":  "^46.0.0"
+                        }
+}
