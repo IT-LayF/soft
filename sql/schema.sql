@@ -70,7 +70,11 @@ create table if not exists free_key_claims (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id) on delete cascade,
   claim_date date not null default current_date,
+  daily_slot integer check (daily_slot between 1 and 3),
   license_id uuid references licenses(id) on delete set null,
   created_at timestamptz not null default now(),
   unique(user_id, claim_date)
 );
+
+alter table free_key_claims add column if not exists daily_slot integer check (daily_slot between 1 and 3);
+create unique index if not exists free_key_daily_slot on free_key_claims(claim_date,daily_slot) where daily_slot is not null;

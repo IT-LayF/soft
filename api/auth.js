@@ -32,7 +32,7 @@ export default async function handler(req,res) {
       return json(res,200,{user:publicUser(rows[0])});
     }
     if(action==='profile') {
-      const licenses=await sql`select key_cipher as key,duration_days as "durationDays",activated_at as "activatedAt",expires_at as "expiresAt",revoked from licenses where user_id=${u.id} order by created_at desc`;
+      const licenses=await sql`select key_cipher as key,duration_days as "durationDays",activated_at as "activatedAt",expires_at as "expiresAt",revoked,max_activations as "maxActivations" from licenses where user_id=${u.id} and revoked=false and (expires_at is null or expires_at>now()) order by created_at desc`;
       return json(res,200,{user:publicUser(u),licenses});
     }
     return json(res,400,{message:'Неизвестное действие'});
