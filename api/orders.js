@@ -1,9 +1,9 @@
 import {json,method,sql,requireActor} from '../lib/core.js';
 
 const plans={
-  month:{label:'Infinyty на 30 дней',RUB:499,UAH:199},
-  quarter:{label:'Infinyty на 90 дней',RUB:1199,UAH:449},
-  forever:{label:'Infinyty навсегда',RUB:2999,UAH:1199}
+  month:{label:'Infinyty на 30 дней',RUB:169,UAH:69},
+  quarter:{label:'Infinyty на 90 дней',RUB:399,UAH:149},
+  forever:{label:'Infinyty навсегда',RUB:999,UAH:399}
 };
 
 async function notify(text){

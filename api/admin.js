@@ -14,7 +14,9 @@ export default async function handler(req,res){
   }
   if(['reset','revoke','delete'].includes(b.action)){
     const hash=sha256(String(b.key||'').toUpperCase());
-    const rows=b.action==='reset'?await sql`update licenses set hwid_hash=null where key_hash=${hash} returning id`:b.action==='delete'?await sql`delete from licenses where key_hash=${hash} returning id`:await sql`update licenses set revoked=true where key_hash=${hash} returning id`;
+    let rows;
+    if(b.action==='reset'){rows=await sql`select id from licenses where key_hash=${hash}`;if(rows[0])await sql`delete from license_activations where license_id=${rows[0].id}`;}
+    else rows=b.action==='delete'?await sql`delete from licenses where key_hash=${hash} returning id`:await sql`update licenses set revoked=true where key_hash=${hash} returning id`;
     return json(res,200,{changed:rows.length>0});
   }
   if(b.action==='users') return json(res,200,{users:await sql`select id,login,nickname,role,blocked,created_at as "createdAt" from users order by created_at desc limit 500`});

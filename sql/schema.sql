@@ -20,6 +20,7 @@ create table if not exists licenses (
   activated_at timestamptz,
   expires_at timestamptz,
   hwid_hash text,
+  max_activations integer not null default 1,
   revoked boolean not null default false,
   created_at timestamptz not null default now()
 );
@@ -56,6 +57,14 @@ create table if not exists orders (
 );
 
 alter table orders add column if not exists license_id uuid references licenses(id) on delete set null;
+alter table licenses add column if not exists max_activations integer not null default 1;
+
+create table if not exists license_activations (
+  license_id uuid not null references licenses(id) on delete cascade,
+  hwid_hash text not null,
+  activated_at timestamptz not null default now(),
+  primary key(license_id, hwid_hash)
+);
 
 create table if not exists free_key_claims (
   id uuid primary key default gen_random_uuid(),
