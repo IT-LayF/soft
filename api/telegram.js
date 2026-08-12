@@ -8,7 +8,8 @@ async function send(chatId,text){
 
 export default async function handler(req,res){
   if(req.method!=='POST')return json(res,405,{ok:false});
-  if(process.env.TELEGRAM_WEBHOOK_SECRET&&req.headers['x-telegram-bot-api-secret-token']!==process.env.TELEGRAM_WEBHOOK_SECRET)return json(res,401,{ok:false});
+  const configuredSecret=String(process.env.TELEGRAM_WEBHOOK_SECRET||'').replace(/\//g,'_').replace(/\+/g,'-').replace(/=+$/,'');
+  if(configuredSecret&&req.headers['x-telegram-bot-api-secret-token']!==configuredSecret)return json(res,401,{ok:false});
   const message=req.body?.message,chatId=message?.chat?.id,text=String(message?.text||'').trim();
   if(!chatId)return json(res,200,{ok:true});
   const admins=String(process.env.TELEGRAM_ADMIN_IDS||'').split(',').map(v=>v.trim()).filter(Boolean);
