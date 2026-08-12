@@ -1,2 +1,205 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Админ-панель Infinyty</title><link rel="stylesheet" href="/app.css"></head><body><div class="dashboard"><aside class="side"><div class="brand">INFINYTY <span>ADMIN</span></div><p><a href="/cabinet">Личный кабинет</a></p><button class="ghost" onclick="logout()">Выйти</button></aside><main class="main"><div class="eyebrow">CONTROL CENTER</div><h1>Управление</h1><div class="grid"><section class="card"><h3>Новый ключ</h3><select id="days"><option value="1">1 день</option><option value="30">30 дней</option><option value="90">90 дней</option><option value="365">365 дней</option><option value="forever">Навсегда</option></select><button onclick="createKey()">Создать ключ</button><p id="keyOut"></p></section><section class="card"><h3>Публикация мода</h3><input id="modVersion" placeholder="Версия"><input id="modFile" type="file" accept=".jar"><button onclick="upload('mod')">Загрузить мод</button></section><section class="card"><h3>Публикация лаунчера</h3><input id="launcherVersion" placeholder="Версия"><input id="launcherFile" type="file" accept=".exe"><button onclick="upload('launcher')">Загрузить лаунчер</button></section></div><section class="card" style="margin-top:18px"><h3>Статус</h3><p id="status" class="muted">Готово</p></section><section class="card" style="margin-top:18px"><h3>Загруженные версии</h3><div id="releaseStatus" class="muted">Проверяем...</div></section><section class="card" style="margin-top:18px"><h3>Ключи</h3><table class="table"><thead><tr><th>Ключ</th><th>Срок</th><th>Состояние</th><th>Действия</th></tr></thead><tbody id="licenses"></tbody></table></section></main></div>
-<script>const t=localStorage.getItem('token');if(!t)location='/';async function api(path,b){const r=await fetch('/api/'+path,{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+t},body:JSON.stringify(b)}),j=await r.json();if(!r.ok)throw Error(j.message);return j}function logout(){localStorage.removeItem('token');location='/'}async function createKey(){try{const d=days.value==='forever'?null:+days.value,j=await api('admin',{action:'create',durationDays:d});keyOut.textContent=j.key;navigator.clipboard.writeText(j.key);load()}catch(e){alert(e.message)}}async function keyAction(action,key){if(action==='delete'&&!confirm('Удалить ключ безвозвратно?'))return;try{await api('admin',{action,key});load()}catch(e){alert(e.message)}}async function digest(file){const b=await file.arrayBuffer(),h=await crypto.subtle.digest('SHA-256',b);return [...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,'0')).join('')}async function upload(kind){const statusBox=document.getElementById('status');try{const file=(kind==='mod'?modFile:launcherFile).files[0],version=(kind==='mod'?modVersion:launcherVersion).value.trim();if(!file||!version)throw Error('Выберите файл и укажите версию');statusBox.textContent='Подготовка файла...';const size=512*1024,count=Math.ceil(file.size/size),sha=await digest(file);statusBox.textContent='Создаём версию...';let j=await api('releases',{action:'begin',kind,version,filename:file.name,sha256:sha,size:file.size,chunkCount:count});for(let i=0;i<count;i++){statusBox.textContent=`Загрузка ${i+1}/${count} (${Math.round(i/count*100)}%)`;const bytes=new Uint8Array(await file.slice(i*size,Math.min(file.size,(i+1)*size)).arrayBuffer());let data='';for(let p=0;p<bytes.length;p+=32768)data+=String.fromCharCode(...bytes.subarray(p,p+32768));await api('releases',{action:'chunk',releaseId:j.releaseId,index:i,data:btoa(data)})}statusBox.textContent='Публикуем версию...';await api('releases',{action:'publish',releaseId:j.releaseId});statusBox.textContent='Версия опубликована ✓';await load()}catch(e){statusBox.textContent='Ошибка: '+e.message;alert('Ошибка загрузки: '+e.message)}}async function load(){try{const releases=await api('releases',{action:'list'}),published={};releases.releases.filter(x=>x.published).forEach(x=>published[x.kind]=x);const describe=(kind,label)=>published[kind]?`<p><b>${label}: загружен ✓</b><br>Версия ${published[kind].version} · ${published[kind].filename} · ${(published[kind].size/1048576).toFixed(1)} МБ</p>`:`<p><b>${label}: не загружен ✗</b></p>`;releaseStatus.innerHTML=describe('launcher','Лаунчер')+describe('mod','Мод');const j=await api('admin',{action:'list'});licenses.innerHTML=j.licenses.map(x=>`<tr><td>${x.key||'…'+x.hint}</td><td>${x.durationDays||'∞'}</td><td>${x.revoked?'Отозван':x.activatedAt?'Активен':'Новый'}</td><td><button onclick="keyAction('reset','${x.key}')">Сброс HWID</button> <button onclick="keyAction('revoke','${x.key}')">Отозвать</button> <button onclick="keyAction('delete','${x.key}')">Удалить</button></td></tr>`).join('')}catch(e){alert(e.message);location='/cabinet'}}load()</script></body></html>
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <script>
+      if (location.hostname === "layf-infinity.vercel.app")
+        location.replace(
+          "https://soft-beta.vercel.app" +
+            location.pathname +
+            location.search +
+            location.hash,
+        );
+    </script>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Админ-панель Infinyty</title>
+    <link rel="stylesheet" href="/app.css" />
+  </head>
+  <body>
+    <div class="dashboard">
+      <aside class="side">
+        <div class="brand">INFINYTY <span>ADMIN</span></div>
+        <p><a href="/cabinet">Личный кабинет</a></p>
+        <button class="ghost" onclick="logout()">Выйти</button>
+      </aside>
+      <main class="main">
+        <div class="eyebrow">CONTROL CENTER</div>
+        <h1>Управление</h1>
+        <div class="grid">
+          <section class="card">
+            <h3>Новый ключ</h3>
+            <select id="days">
+              <option value="1">1 день</option>
+              <option value="30">30 дней</option>
+              <option value="90">90 дней</option>
+              <option value="365">365 дней</option>
+              <option value="forever">Навсегда</option></select
+            ><button onclick="createKey()">Создать ключ</button>
+            <p id="keyOut"></p>
+          </section>
+          <section class="card">
+            <h3>Публикация мода</h3>
+            <input id="modVersion" placeholder="Версия" /><input
+              id="modFile"
+              type="file"
+              accept=".jar"
+            /><button onclick="upload('mod')">Загрузить мод</button>
+          </section>
+          <section class="card">
+            <h3>Публикация лаунчера</h3>
+            <input id="launcherVersion" placeholder="Версия" /><input
+              id="launcherFile"
+              type="file"
+              accept=".exe"
+            /><button onclick="upload('launcher')">Загрузить лаунчер</button>
+          </section>
+        </div>
+        <section class="card" style="margin-top: 18px">
+          <h3>Статус</h3>
+          <p id="status" class="muted">Готово</p>
+        </section>
+        <section class="card" style="margin-top: 18px">
+          <h3>Загруженные версии</h3>
+          <div id="releaseStatus" class="muted">Проверяем...</div>
+        </section>
+        <section class="card" style="margin-top: 18px">
+          <h3>Ключи</h3>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Ключ</th>
+                <th>Срок</th>
+                <th>Состояние</th>
+                <th>Действия</th>
+              </tr>
+            </thead>
+            <tbody id="licenses"></tbody>
+          </table>
+        </section>
+      </main>
+    </div>
+    <script>
+      const t = localStorage.getItem("token");
+      if (!t) location = "/";
+      async function api(path, b) {
+        const r = await fetch("/api/" + path, {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              authorization: "Bearer " + t,
+            },
+            body: JSON.stringify(b),
+          }),
+          j = await r.json();
+        if (!r.ok) throw Error(j.message);
+        return j;
+      }
+      function logout() {
+        localStorage.removeItem("token");
+        location = "/";
+      }
+      async function createKey() {
+        try {
+          const d = days.value === "forever" ? null : +days.value,
+            j = await api("admin", { action: "create", durationDays: d });
+          keyOut.textContent = j.key;
+          navigator.clipboard.writeText(j.key);
+          load();
+        } catch (e) {
+          alert(e.message);
+        }
+      }
+      async function keyAction(action, key) {
+        if (action === "delete" && !confirm("Удалить ключ безвозвратно?"))
+          return;
+        try {
+          await api("admin", { action, key });
+          load();
+        } catch (e) {
+          alert(e.message);
+        }
+      }
+      async function digest(file) {
+        const b = await file.arrayBuffer(),
+          h = await crypto.subtle.digest("SHA-256", b);
+        return [...new Uint8Array(h)]
+          .map((x) => x.toString(16).padStart(2, "0"))
+          .join("");
+      }
+      async function upload(kind) {
+        const statusBox = document.getElementById("status");
+        try {
+          const file = (kind === "mod" ? modFile : launcherFile).files[0],
+            version = (
+              kind === "mod" ? modVersion : launcherVersion
+            ).value.trim();
+          if (!file || !version) throw Error("Выберите файл и укажите версию");
+          statusBox.textContent = "Подготовка файла...";
+          const size = 512 * 1024,
+            count = Math.ceil(file.size / size),
+            sha = await digest(file);
+          statusBox.textContent = "Создаём версию...";
+          let j = await api("releases", {
+            action: "begin",
+            kind,
+            version,
+            filename: file.name,
+            sha256: sha,
+            size: file.size,
+            chunkCount: count,
+          });
+          for (let i = 0; i < count; i++) {
+            statusBox.textContent = `Загрузка ${i + 1}/${count} (${Math.round((i / count) * 100)}%)`;
+            const bytes = new Uint8Array(
+              await file
+                .slice(i * size, Math.min(file.size, (i + 1) * size))
+                .arrayBuffer(),
+            );
+            let data = "";
+            for (let p = 0; p < bytes.length; p += 32768)
+              data += String.fromCharCode(...bytes.subarray(p, p + 32768));
+            await api("releases", {
+              action: "chunk",
+              releaseId: j.releaseId,
+              index: i,
+              data: btoa(data),
+            });
+          }
+          statusBox.textContent = "Публикуем версию...";
+          await api("releases", { action: "publish", releaseId: j.releaseId });
+          statusBox.textContent = "Версия опубликована ✓";
+          await load();
+        } catch (e) {
+          statusBox.textContent = "Ошибка: " + e.message;
+          alert("Ошибка загрузки: " + e.message);
+        }
+      }
+      async function load() {
+        try {
+          const releases = await api("releases", { action: "list" }),
+            published = {};
+          releases.releases
+            .filter((x) => x.published)
+            .forEach((x) => (published[x.kind] = x));
+          const describe = (kind, label) =>
+            published[kind]
+              ? `<p><b>${label}: загружен ✓</b><br>Версия ${published[kind].version} · ${published[kind].filename} · ${(published[kind].size / 1048576).toFixed(1)} МБ</p>`
+              : `<p><b>${label}: не загружен ✗</b></p>`;
+          releaseStatus.innerHTML =
+            describe("launcher", "Лаунчер") + describe("mod", "Мод");
+          const j = await api("admin", { action: "list" });
+          licenses.innerHTML = j.licenses
+            .map(
+              (x) =>
+                `<tr><td>${x.key || "…" + x.hint}</td><td>${x.durationDays || "∞"}</td><td>${x.revoked ? "Отозван" : x.activatedAt ? "Активен" : "Новый"}</td><td><button onclick="keyAction('reset','${x.key}')">Сброс HWID</button> <button onclick="keyAction('revoke','${x.key}')">Отозвать</button> <button onclick="keyAction('delete','${x.key}')">Удалить</button></td></tr>`,
+            )
+            .join("");
+        } catch (e) {
+          alert(e.message);
+          location = "/cabinet";
+        }
+      }
+      load();
+    </script>
+  </body>
+</html>
