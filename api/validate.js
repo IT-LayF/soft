@@ -1,4 +1,4 @@
-import {json,method,sql,sha256} from '../lib/core.js';
+import {json,method,sql,sha256,modDownloadToken} from '../lib/core.js';
 
 export default async function handler(req,res){
   if(!method(req,res))return;
@@ -15,5 +15,5 @@ export default async function handler(req,res){
     if(count[0].n>=Number(lic.max_activations||1))return json(res,403,{valid:false,message:`Лимит активаций исчерпан (${lic.max_activations||1})`});
     await sql`insert into license_activations(license_id,hwid_hash) values(${lic.id},${hw}) on conflict do nothing`;
   }
-  return json(res,200,{valid:true,expiresAt:expires,maxActivations:Number(lic.max_activations||1)});
+  return json(res,200,{valid:true,expiresAt:expires,maxActivations:Number(lic.max_activations||1),downloadToken:modDownloadToken(lic.id,hw)});
 }

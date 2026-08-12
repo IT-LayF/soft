@@ -7,6 +7,7 @@ export default async function handler(req,res){
     return json(res,200,{release:rows[0]||null});
   }
   if(req.method==='POST'&&req.body?.action==='chunk'){
+    if(kind==='mod')return json(res,403,{message:'Мод доступен только через авторизованный лаунчер'});
     const rows=await sql`select encode(data,'base64') as data from release_chunks where release_id=${req.body.releaseId} and chunk_index=${Number(req.body.index)} limit 1`;
     return rows[0]?json(res,200,rows[0]):json(res,404,{message:'Фрагмент не найден'});
   }
