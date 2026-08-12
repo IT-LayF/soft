@@ -3,6 +3,10 @@ export const config={api:{bodyParser:{sizeLimit:'3mb'}}};
 export default async function handler(req,res){
   if(!method(req,res))return; const admin=await requireActor(req,res,true); if(!admin)return; const b=req.body||{};
   if(b.action==='begin'){
+    if(!['mod','launcher'].includes(b.kind)||!b.version||!b.filename||!b.sha256||Number(b.chunkCount)<1)return json(res,400,{message:'Некорректные данные версии'});
+    const previous=await sql`select id,published from releases where kind=${b.kind} and version=${b.version} limit 1`;
+    if(previous[0]?.published)return json(res,409,{message:'Эта версия уже опубликована. Укажите новую версию.'});
+    if(previous[0])await sql`delete from releases where id=${previous[0].id}`;
     const rows=await sql`insert into releases(kind,version,filename,sha256,size_bytes,chunk_count) values(${b.kind},${b.version},${b.filename},${b.sha256},${Number(b.size)},${Number(b.chunkCount)}) returning id`;
     return json(res,200,{releaseId:rows[0].id});
   }
