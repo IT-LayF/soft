@@ -22,20 +22,26 @@ export default async function handler(req,res){
     if(!login||(!Number.isFinite(days)&&days!==null)||days!==null&&(days<1||days>3650)){
       await send(chatId,'Использование: /выдать @логин 7 или /выдать @логин навсегда');return json(res,200,{ok:true});
     }
-    const users=await sql`select id,login,nickname from users where lower(login)=lower(${login}) limit 1`;
+    const users=await sql`select id,login,nickname from users where lower(login)=lower(${login}) or lower(nickname)=lower(${login}) limit 1`;
     if(!users[0]){await send(chatId,`Пользователь @${login} не найден на сайте.`);return json(res,200,{ok:true});}
     const key=newLicenseKey(),user=users[0];
     await sql`insert into licenses(key_hash,key_cipher,key_hint,duration_days,user_id,max_activations) values(${sha256(key)},${key},${key.slice(-6)},${days},${user.id},1)`;
     await send(chatId,`Ключ выдан пользователю @${user.login}\nНик Minecraft: ${user.nickname}\nСрок: ${days?days+' дней':'Навсегда'}\nКлюч: ${key}\n\nКлюч уже появился в кабинете и лаунчере.`);
+  } else if(['/assign','/привязать'].includes(command)&&parts[1]&&parts[2]){
+    const key=String(parts[1]).toUpperCase(),login=String(parts[2]).replace(/^@/,'');
+    const users=await sql`select id,login,nickname from users where lower(login)=lower(${login}) or lower(nickname)=lower(${login}) limit 1`;
+    if(!users[0]){await send(chatId,`Пользователь @${login} не найден.`);return json(res,200,{ok:true});}
+    const rows=await sql`update licenses set user_id=${users[0].id} where key_hash=${sha256(key)} returning id`;
+    await send(chatId,rows.length?`Ключ привязан к @${users[0].login} (${users[0].nickname}) и появился в кабинете.`:'Ключ не найден.');
   } else if(command==='/key'){
     const raw=String(parts[1]||'forever'),days=raw.toLowerCase()==='forever'?null:Number(raw);
     if(days!==null&&(!Number.isFinite(days)||days<1||days>3650)){await send(chatId,'Использование: /key 30 или /key forever');return json(res,200,{ok:true});}
     const key=newLicenseKey();await sql`insert into licenses(key_hash,key_cipher,key_hint,duration_days) values(${sha256(key)},${key},${key.slice(-6)},${days})`;
-    await send(chatId,`Ключ: ${key}\nСрок: ${days?days+' дней':'Навсегда'}`);
+    await send(chatId,`Ключ: ${key}\nСрок: ${days?days+' дней':'Навсегда'}\nВладелец не назначен. Для кабинета: /привязать ${key} @логин`);
   } else if(command==='/revoke'&&parts[1]){
     const rows=await sql`update licenses set revoked=true where key_hash=${sha256(parts[1].toUpperCase())} returning id`;await send(chatId,rows.length?'Ключ отозван.':'Ключ не найден.');
   } else if(command==='/reset'&&parts[1]){
     const rows=await sql`select id from licenses where key_hash=${sha256(parts[1].toUpperCase())}`;if(rows[0])await sql`delete from license_activations where license_id=${rows[0].id}`;await send(chatId,rows.length?'Активации ключа сброшены.':'Ключ не найден.');
-  } else await send(chatId,'Команды:\n/выдать @логин 7\n/выдать @логин навсегда\n/key 30\n/key forever\n/revoke KEY\n/reset KEY');
+  } else await send(chatId,'Команды:\n/выдать @логин 7\n/выдать @логин навсегда\n/привязать KEY @логин\n/key 30 (без владельца)\n/key forever\n/revoke KEY\n/reset KEY');
   return json(res,200,{ok:true});
 }

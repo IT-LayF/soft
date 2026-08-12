@@ -19,6 +19,13 @@ export default async function handler(req,res){
     else rows=b.action==='delete'?await sql`delete from licenses where key_hash=${hash} returning id`:await sql`update licenses set revoked=true where key_hash=${hash} returning id`;
     return json(res,200,{changed:rows.length>0});
   }
+  if(b.action==='assign'){
+    const login=String(b.login||'').replace(/^@/,'').trim(),hash=sha256(String(b.key||'').toUpperCase());
+    const users=await sql`select id from users where lower(login)=lower(${login}) or lower(nickname)=lower(${login}) limit 1`;
+    if(!users[0])return json(res,404,{message:'Пользователь не найден'});
+    const rows=await sql`update licenses set user_id=${users[0].id} where key_hash=${hash} returning id`;
+    return json(res,200,{changed:rows.length>0});
+  }
   if(b.action==='users') return json(res,200,{users:await sql`select id,login,nickname,role,blocked,created_at as "createdAt" from users order by created_at desc limit 500`});
   if(b.action==='set-user'){
     const rows=await sql`update users set blocked=${Boolean(b.blocked)},role=${b.role==='admin'?'admin':'user'} where id=${b.id} returning id`;
