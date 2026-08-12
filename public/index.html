@@ -106,6 +106,16 @@
           </article>
         </div>
       </section>
+      <section class="section" id="clips">
+        <div class="eyebrow">PVP MOMENTS</div>
+        <h2>Моменты игроков</h2>
+        <div class="grid" id="clipsGrid">
+          <article class="card">
+            <h3>Пока пусто</h3>
+            <p class="muted">После подтверждения в Telegram ролики появятся здесь.</p>
+          </article>
+        </div>
+      </section>
     </div>
     <div class="modal" id="modal">
       <form class="dialog" onsubmit="submitAuth(event)">
@@ -359,11 +369,32 @@
           section.innerHTML = `<div class="eyebrow">ОБЩАЯ СТАТИСТИКА</div><h2>Infinyty за всё время</h2><div class="grid"><article class="card"><h3>Всего регистраций</h3><div class="price">${s.registrations}</div></article><article class="card"><h3>Всего ключей</h3><div class="price">${s.licenses}</div></article><article class="card"><h3>Всего активаций</h3><div class="price">${s.activations}</div></article><article class="card"><h3>Скачано лаунчеров</h3><div class="price">${s.downloads.launcher}</div></article><article class="card"><h3>Скачано модов</h3><div class="price">${s.downloads.mod}</div></article><article class="card"><h3>Играют сейчас</h3><div class="price">${s.online}</div></article><article class="card"><h3>Топ серверов сейчас</h3><div class="muted">${s.servers.length ? s.servers.map((x, i) => `<p>${i + 1}. <b>${x.server}</b> — ${x.players}</p>`).join("") : "Нет активных игроков"}</div></article></div>`;
         } catch {}
       }
+      function clipEmbed(url) {
+        if (!url) return "";
+        let match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]+)/);
+        if (match) return `<iframe class="clipFrame" src="https://www.youtube.com/embed/${match[1]}" loading="lazy" allowfullscreen></iframe>`;
+        return `<video class="clipFrame" controls preload="metadata" src="${url}"></video>`;
+      }
+      async function loadClips() {
+        try {
+          const j = await fetch("/api/clips", { cache: "no-store" }).then((r) => r.json());
+          clipsGrid.innerHTML = j.clips.length
+            ? j.clips
+                .map(
+                  (x) =>
+                    `<article class="card clipCard">${clipEmbed(x.youtubeUrl || x.videoUrl || x.telegramUrl)}<h3>${x.title}</h3><p class="muted">${x.player || "Игрок"}${x.server ? " · " + x.server : ""}</p></article>`,
+                )
+                .join("")
+            : `<article class="card"><h3>Пока пусто</h3><p class="muted">После подтверждения в Telegram ролики появятся здесь.</p></article>`;
+        } catch {}
+      }
       setInterval(tickFree, 1000);
       setInterval(loadGeneralStats, 15000);
+      setInterval(loadClips, 30000);
       syncSession();
       freeStatus();
       loadGeneralStats();
+      loadClips();
     </script>
   </body>
 </html>
