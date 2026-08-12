@@ -3,7 +3,7 @@ export default async function handler(req,res){
   const kind=req.query?.kind==='mod'?'mod':'launcher';
   if(req.method==='GET'){
     const rows=await sql`select id,version,filename,sha256,size_bytes as size,chunk_count from releases where kind=${kind} and published=true order by created_at desc limit 1`;
-    if(rows[0]&&kind==='launcher')await sql`insert into download_events(kind) values('launcher')`;
+    if(rows[0])await sql`insert into download_events(kind) values(${kind})`;
     return json(res,200,{release:rows[0]||null});
   }
   if(req.method==='POST'&&req.body?.action==='chunk'){
