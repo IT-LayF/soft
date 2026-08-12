@@ -78,3 +78,16 @@ create table if not exists free_key_claims (
 
 alter table free_key_claims add column if not exists daily_slot integer check (daily_slot between 1 and 3);
 create unique index if not exists free_key_daily_slot on free_key_claims(claim_date,daily_slot) where daily_slot is not null;
+
+create table if not exists telemetry_sessions (
+  user_id uuid primary key references users(id) on delete cascade,
+  nickname text not null,
+  server_address text not null,
+  last_seen timestamptz not null default now()
+);
+
+create table if not exists download_events (
+  id bigserial primary key,
+  kind text not null,
+  created_at timestamptz not null default now()
+);
