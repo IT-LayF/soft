@@ -1,9 +1,9 @@
 import {json,method,sql,requireActor} from '../lib/core.js';
 
 const plans={
-  month:{label:'Infinyty на 30 дней',RUB:169,UAH:69},
-  quarter:{label:'Infinyty на 90 дней',RUB:399,UAH:149},
-  forever:{label:'Infinyty навсегда',RUB:999,UAH:399}
+  month:{days:30,RUB:169,UAH:69},
+  quarter:{days:90,RUB:399,UAH:149},
+  forever:{days:null,RUB:999,UAH:399}
 };
 
 async function notify(text){
@@ -17,10 +17,9 @@ export default async function handler(req,res){
   const user=await requireActor(req,res); if(!user)return;
   const plan=plans[req.body?.plan],currency=['RUB','UAH'].includes(req.body?.currency)?req.body.currency:'RUB';
   if(!plan)return json(res,400,{message:'Неизвестный тариф'});
-  const amount=plan[currency];
+  const amount=plan[currency],currencyName=currency==='UAH'?'Гривны':'Рубли',symbol=currency==='UAH'?'₴':'₽',days=plan.days?`${plan.days} дней`:'Навсегда';
   const rows=await sql`insert into orders(user_id,plan,amount) values(${user.id},${req.body.plan},${amount}) returning id`;
-  const unit=currency==='UAH'?'грн':'руб';
-  const text=`Здравствуйте! Хочу купить ${plan.label}. К оплате: ${amount} ${unit}. Заявка: ${rows[0].id}. Аккаунт: ${user.login}, ник: ${user.nickname}.`;
-  await notify(`НОВАЯ ЗАЯВКА НА ПОКУПКУ\n${text}`);
+  const text=`Чит Infinity\nВалюта: ${currencyName}\nСумма: ${amount} ${symbol}\nКоличество дней: ${days}\nПользователь: @${user.login}\nНик Minecraft: ${user.nickname}`;
+  await notify(text);
   return json(res,200,{orderId:rows[0].id,telegramUrl:`https://t.me/HET_CTPAXA_x?text=${encodeURIComponent(text)}`});
 }
