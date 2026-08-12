@@ -91,20 +91,3 @@ create table if not exists download_events (
   kind text not null,
   created_at timestamptz not null default now()
 );
-
-create table if not exists pvp_clips (
-  id uuid primary key default gen_random_uuid(),
-  title text not null default 'PvP moment',
-  player_name text,
-  server_address text,
-  telegram_file_id text,
-  telegram_message_id bigint,
-  video_url text,
-  youtube_url text,
-  status text not null default 'pending' check (status in ('pending','public','rejected')),
-  created_at timestamptz not null default now(),
-  published_at timestamptz
-);
-
-create index if not exists pvp_clips_status_created on pvp_clips(status, created_at desc);
-create index if not exists pvp_clips_telegram_message on pvp_clips(telegram_message_id);

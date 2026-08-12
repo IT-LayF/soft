@@ -1,10 +1,7 @@
-import {json,method,sql,sha256,modDownloadToken} from '../lib/core.js';
+import {json,method,sql,sha256} from '../lib/core.js';
 
 export default async function handler(req,res){
   if(!method(req,res))return;
-  const requiredVersion='1.6.4';
-  const clientVersion=String(req.body?.clientVersion||'').trim();
-  if(clientVersion!==requiredVersion)return json(res,426,{valid:false,updateRequired:true,minimumVersion:requiredVersion,message:'Обновите лаунчер до версии '+requiredVersion});
   const key=String(req.body?.key||'').trim().toUpperCase(),hwid=String(req.body?.hwid||'').trim();
   if(!key||!hwid)return json(res,400,{valid:false,message:'Укажите ключ и HWID'});
   const rows=await sql`select * from licenses where key_hash=${sha256(key)} limit 1`,lic=rows[0];
@@ -18,5 +15,5 @@ export default async function handler(req,res){
     if(count[0].n>=Number(lic.max_activations||1))return json(res,403,{valid:false,message:`Лимит активаций исчерпан (${lic.max_activations||1})`});
     await sql`insert into license_activations(license_id,hwid_hash) values(${lic.id},${hw}) on conflict do nothing`;
   }
-  return json(res,200,{valid:true,expiresAt:expires,maxActivations:Number(lic.max_activations||1),downloadToken:modDownloadToken(lic.id,hw)});
+  return json(res,200,{valid:true,expiresAt:expires,maxActivations:Number(lic.max_activations||1)});
 }

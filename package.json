@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "npx vercel dev",
-    "check": "node --check api/auth.js && node --check api/admin.js && node --check api/validate.js && node --check api/free-key.js && node --check api/orders.js && node --check api/mod-update.js && node --check api/launcher-update.js && node --check api/releases.js && node --check api/telegram.js && node --check api/clips.js && node --check api/clip-file.js"
+    "check": "node --check api/auth.js && node --check api/admin.js && node --check api/validate.js && node --check api/free-key.js && node --check api/orders.js && node --check api/mod-update.js && node --check api/launcher-update.js && node --check api/releases.js && node --check api/telegram.js"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.1",
