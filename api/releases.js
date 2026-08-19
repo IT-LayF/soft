@@ -21,6 +21,9 @@ export default async function handler(req,res){
     if(!rel[0]||count[0].n!==rel[0].chunk_count)return json(res,400,{message:'Загружены не все фрагменты'});
     await sql`update releases set published=false where kind=${rel[0].kind}`;
     await sql`update releases set published=true where id=${b.releaseId}`;
+    // Binary chunks are the largest part of the database. Keep only the
+    // current release of each kind so old uploads cannot exhaust Neon storage.
+    await sql`delete from releases where kind=${rel[0].kind} and id<>${b.releaseId}`;
     return json(res,200,{ok:true});
   }
 
